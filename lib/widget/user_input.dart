@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shopping_app/data/categories.dart';
-// import 'package:shopping_app/model/category.dart';
+import 'package:http/http.dart' as http;
+import 'package:shopping_app/model/category.dart';
 import 'package:shopping_app/model/grocery.dart';
 
 class NewItem extends StatefulWidget {
@@ -17,16 +19,36 @@ class _NewItemState extends State<NewItem> {
 
   String _name = '';
   int _quantity = 1;
-  var _selectedCategory;
+  var _selectedCategory = categories[Categories.vegetables]!;
 
-  void _saveItem() {
+  void _saveItem() async{
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      Navigator.of(context).pop(GroceryItem(
-          id: DateTime.now().toString(),
-          name: _name,
-          quantity: _quantity,
-          category: _selectedCategory));
+      final url = Uri.https(
+          'flutter-test-3724f-default-rtdb.asia-southeast1.firebasedatabase.app',
+          'shopping-app.json');
+
+    final response = await  http.post(url,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: json.encode({
+            'id': DateTime.now().toString(),
+            'name': _name,
+            'quantity': _quantity,
+            'category': _selectedCategory.title,
+          }));
+
+          print(response.body);
+          print(response.statusCode);
+ Navigator.of(context).pop();
+
+ 
+      // Navigator.of(context).pop(GroceryItem(
+      //     id: DateTime.now().toString(),
+      //     name: _name,
+      //     quantity: _quantity,
+      //     category: _selectedCategory));
     }
   }
 
@@ -116,7 +138,7 @@ class _NewItemState extends State<NewItem> {
                           }).toList(),
                           onChanged: (value) {
                             setState(() {
-                              _selectedCategory = value;
+                              _selectedCategory = value!;
                             });
                           },
                           validator: (value) =>
@@ -136,7 +158,7 @@ class _NewItemState extends State<NewItem> {
                     onPressed: () {
                       _formKey.currentState!.reset();
                       setState(() {
-                        _selectedCategory = null;
+                        _selectedCategory = categories[Categories.vegetables]!;
                       });
                     },
                     child: const Text("Reset"),
