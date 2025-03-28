@@ -41,13 +41,17 @@ class _NewItemState extends State<NewItem> {
 
           print(response.body);
           print(response.statusCode);
- Navigator.of(context).pop();
+
+          if(context.mounted){
+            return;
+          }
+          Navigator.of(context).pop();
 
  
       // Navigator.of(context).pop(GroceryItem(
       //     id: DateTime.now().toString(),
       //     name: _name,
-      //     quantity: _quantity,
+      //     quantity: _quantity,x`x`
       //     category: _selectedCategory));
     }
   }
@@ -57,7 +61,7 @@ class _NewItemState extends State<NewItem> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("ADD ITEMS❗"),
-      ),
+      ), 
       body: Padding(
         padding: const EdgeInsets.all(10),
         child: Form(
@@ -79,7 +83,7 @@ class _NewItemState extends State<NewItem> {
                   }
                   return null;
                 },
-                onSaved: (value) => _name = value!,
+                onSaved: (value) => _name = value!, 
               ),
               const SizedBox(height: 18),
 
