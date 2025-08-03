@@ -16,7 +16,9 @@ class ItemsMain extends StatefulWidget {
 }
 
 class _ItemsMainState extends State<ItemsMain> {
-  List<GroceryItem> _groceryitems = [];
+  List<GroceryItem> groceryitems = [];
+  var _isloading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -29,6 +31,29 @@ class _ItemsMainState extends State<ItemsMain> {
         'flutter-test-3724f-default-rtdb.asia-southeast1.firebasedatabase.app',
         'shopping-app.json');
     final response = await http.get(url);
+
+    if (response.statusCode >= 400) {
+      setState(() {
+        _error = "Failed to load. Try Again!";
+      });
+      return;
+    }
+
+    if (response.body == 'null') {
+      setState(() {
+        _isloading = false;
+      });
+      return;
+    }
+
+    if (response.body.isEmpty) {
+      setState(() {
+        _error = "No data found!";
+        _isloading = false;
+      });
+      return;
+    }
+
     final Map<String, dynamic> listdata = json.decode(response.body);
 
     final List<GroceryItem> loadItems = [];
@@ -45,61 +70,86 @@ class _ItemsMainState extends State<ItemsMain> {
           quantity: item.value['quantity'],
           category: category));
     }
-    _groceryitems = loadItems;
+    setState(() {
+      groceryitems = loadItems;
+      _isloading = false;
+    });
   }
 
+  Widget content = Center(child: Text("NO Item"));
+
   void _addItem() async {
-   final newItem =  await Navigator.of(context)
+    final newItem = await Navigator.of(context)
         .push<GroceryItem>(MaterialPageRoute(builder: (ctx) => NewItem()));
 
-        if(newItem == null){
-          return ;
-        }
-setState(() {
-  _groceryitems.add(newItem) ;
-});
-
+    if (newItem == null) {
+      return;
+    }
+    setState(() {
+      groceryitems.add(newItem);
+    });
   }
 
   void _removeitems(GroceryItem item) {
+    final url = Uri.https(
+        'flutter-test-3724f-default-rtdb.asia-southeast1.firebasedatabase.app',
+        'shopping-app/${item.id}.json');
+
+    http.delete(url);
     setState(() {
-      _groceryitems.remove(item);
+      groceryitems.remove(item);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-          title: Text("My Groceries❗",
-              style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                  color: Theme.of(context).colorScheme.tertiary,
-                  fontWeight: FontWeight.bold)),
-          actions: [
-            IconButton(onPressed: _addItem, icon: const Icon(Icons.add))
-          ],
+    if (_isloading) {
+      content = const Center(child: CircularProgressIndicator());
+    }
+
+    if (_isloading) {
+      content = const Center(child: CircularProgressIndicator());
+    } else if (_error != null) {
+      content = Center(child: Text(_error!));
+    } else if (groceryitems.isEmpty) {
+      content = const Center(child: Text("No Items"));
+    } else {
+      content = ListView.builder(
+        itemCount: groceryitems.length,
+        itemBuilder: (ctx, index) => Dismissible(
+          onDismissed: (direction) {
+            _removeitems(groceryitems[index]);
+          },
+          key: ValueKey(groceryitems[index].id),
+          child: ListTile(
+            title: Text(groceryitems[index].name),
+            leading: Container(
+              width: 24,
+              height: 24,
+              color: groceryitems[index].category.color,
+            ),
+            trailing: Text(groceryitems[index].quantity.toString()),
+          ),
         ),
-        body: _groceryitems.isNotEmpty
-            ? ListView.builder(
-                itemCount: _groceryitems.length,
-                itemBuilder: (ctx, index) => Dismissible(
-                      onDismissed: (direction) {
-                        _removeitems(_groceryitems[index]);
-                      },
-                      key: ValueKey(_groceryitems[index].id),
-                      child: ListTile(
-                        title: Text(_groceryitems[index].name),
-                        leading: Container(
-                          width: 24,
-                          height: 24,
-                          color: _groceryitems[index].category.color,
-                        ),
-                        trailing:
-                            Text(_groceryitems[index].quantity.toString()),
-                      ),
-                    ))
-            : Center(
-                child: Text("NO Item"),
-              ));
+      );
+    }
+
+    if (_error != null) {
+      Center(child: Text(_error!));
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          "My Groceries❗",
+          style: Theme.of(context).textTheme.titleLarge!.copyWith(
+              color: Theme.of(context).colorScheme.tertiary,
+              fontWeight: FontWeight.bold),
+        ),
+        actions: [IconButton(onPressed: _addItem, icon: const Icon(Icons.add))],
+      ),
+      body: content,
+    );
+    ;
   }
 }

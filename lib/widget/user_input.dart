@@ -20,15 +20,19 @@ class _NewItemState extends State<NewItem> {
   String _name = '';
   int _quantity = 1;
   var _selectedCategory = categories[Categories.vegetables]!;
+  var _isSending = false;
 
-  void _saveItem() async{
+  void _saveItem() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
+      setState(() {
+        _isSending = true;
+      });
       final url = Uri.https(
           'flutter-test-3724f-default-rtdb.asia-southeast1.firebasedatabase.app',
           'shopping-app.json');
 
-    final response = await  http.post(url,
+      final response = await http.post(url,
           headers: {
             'Content-Type': 'application/json',
           },
@@ -39,19 +43,17 @@ class _NewItemState extends State<NewItem> {
             'category': _selectedCategory.title,
           }));
 
-         final Map<String , dynamic> resData = json.decode(response.body) ;
+      final Map<String, dynamic> resData = json.decode(response.body);
 
-          if(!context.mounted){
-            return;
-          }
-          Navigator.of(context).pop(GroceryItem(
-            id: resData['name'],
-           name: _name, 
-           quantity: _quantity,
-            category:_selectedCategory ));
-            
+      if (!context.mounted) {
+        return;
+      }
+      Navigator.of(context).pop(GroceryItem(
+          id: resData['name'],
+          name: _name,
+          quantity: _quantity,
+          category: _selectedCategory));
 
- 
       // Navigator.of(context).pop(GroceryItem(
       //     id: DateTime.now().toString(),
       //     name: _name,
@@ -65,7 +67,7 @@ class _NewItemState extends State<NewItem> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("ADD ITEMS❗"),
-      ), 
+      ),
       body: Padding(
         padding: const EdgeInsets.all(10),
         child: Form(
@@ -87,7 +89,7 @@ class _NewItemState extends State<NewItem> {
                   }
                   return null;
                 },
-                onSaved: (value) => _name = value!, 
+                onSaved: (value) => _name = value!,
               ),
               const SizedBox(height: 18),
 
@@ -163,17 +165,26 @@ class _NewItemState extends State<NewItem> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
-                    onPressed: () {
-                      _formKey.currentState!.reset();
-                      setState(() {
-                        _selectedCategory = categories[Categories.vegetables]!;
-                      });
-                    },
+                    onPressed: _isSending
+                        ? null
+                        : () {
+                            _formKey.currentState!.reset();
+                            setState(() {
+                              _selectedCategory =
+                                  categories[Categories.vegetables]!;
+                            });
+                          },
                     child: const Text("Reset"),
                   ),
                   ElevatedButton(
-                    onPressed: _saveItem,
-                    child: const Text("Add"),
+                    onPressed:
+                     _isSending 
+                     ? null
+                      : _saveItem,
+                    child: 
+                    _isSending 
+                    ? SizedBox(height: 16, width: 16, child: CircularProgressIndicator(),)
+                     : const Text("Add"),
                   ),
                 ],
               ),
